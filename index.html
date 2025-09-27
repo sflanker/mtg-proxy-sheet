@@ -21,10 +21,14 @@
   </main>
   <script type="module">
     import { ProxyCardSheetGenerator } from './index.js'
-    const proxyCardSheetGenerator = new ProxyCardSheetGenerator(
-      document.getElementById('dck-form'),
-      document.getElementById('proxy-sheet-pages'),
-    )
+
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      const proxyCardSheetGenerator = new ProxyCardSheetGenerator(
+        document.getElementById('dck-form'),
+        document.getElementById('proxy-sheet-pages'),
+      )
+    })
   </script>
 </body>
 </html>
