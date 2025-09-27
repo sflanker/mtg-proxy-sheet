@@ -1,0 +1,185 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #6b7280; /* Medium gray background */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+/* Header styles */
+header {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+  color: #1f2937;
+  margin-bottom: 10px;
+}
+
+header p {
+  color: #6b7280;
+  margin-bottom: 15px;
+}
+
+header code {
+  background-color: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* Form styles */
+#dck-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+}
+
+#dck-form label {
+  font-weight: 500;
+  color: #374151;
+}
+
+#dck-form input[type="file"] {
+  padding: 8px;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+  cursor: pointer;
+}
+
+#dck-form input[type="file"]:hover {
+  border-color: #9ca3af;
+  background-color: #f3f4f6;
+}
+
+#dck-form button {
+  padding: 10px 20px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+#dck-form button:hover {
+  background-color: #2563eb;
+}
+
+/* Main content area */
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Proxy page container */
+#proxy-sheet-pages {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Individual proxy page */
+.proxy-page {
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Individual proxy card */
+.proxy-card {
+  aspect-ratio: 2.5 / 3.5; /* Magic card aspect ratio */
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.proxy-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Card images */
+.proxy-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  .proxy-page {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .proxy-card {
+    max-width: 300px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .proxy-page {
+    padding: 10px;
+  }
+
+  .proxy-card {
+    max-width: 250px;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white;
+    padding: 0;
+  }
+
+  header {
+    display: none;
+  }
+
+  .proxy-page {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 20px;
+    page-break-after: always;
+  }
+
+  .proxy-page:last-child {
+    page-break-after: avoid;
+  }
+
+  .proxy-card {
+    box-shadow: none;
+    border: 1px solid #d1d5db;
+  }
+}
