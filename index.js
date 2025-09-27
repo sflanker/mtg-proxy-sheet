@@ -60,7 +60,7 @@ export class ProxyCardSheetGenerator {
       const { mainDeckCards, sideboardCards } = this.parseDckFile(fileContent);
 
       // Combine main deck and sideboard cards
-      const allCards = [...mainDeckCards, ...sideboardCards];
+      const allCards = [...sideboardCards, ...mainDeckCards];
 
       if (allCards.length === 0) {
         alert('No valid cards found in the .dck file');
@@ -135,25 +135,36 @@ export class ProxyCardSheetGenerator {
     const cardsPerPage = 9;
     const totalPages = Math.ceil(cards.length / cardsPerPage);
 
+    let cardIx = 0;
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
       const pageDiv = document.createElement('div');
       pageDiv.className = 'proxy-page';
 
-      const startIndex = pageIndex * cardsPerPage;
-      const endIndex = Math.min(startIndex + cardsPerPage, cards.length);
+      const startIndex = cardIx;
+      const endIndex = Math.min(cardIx + cardsPerPage, cards.length);
       const pageCards = cards.slice(startIndex, endIndex);
 
       // Fetch metadata for all cards on this page
       const cardPromises = pageCards.map(card => this.fetchCardMetadata(card));
       const cardMetadata = await Promise.all(cardPromises);
+      let elementsAdded = 0;
 
-      // Create card elements for this page
-      cardMetadata.forEach((metadata, index) => {
+      for (let i = 0; i < cardMetadata.length && elementsAdded < cardsPerPage; i++) {
+        const metadata = cardMetadata[i];
         if (metadata) {
-          const cardElement = this.createCardElement(metadata, pageCards[index]);
-          pageDiv.appendChild(cardElement);
+          const cardElements = this.createCardElements(metadata, pageCards[i]);
+          if (elementsAdded > 0 && cardElements.length > 1 && elementsAdded + cardElements.length > cardsPerPage) {
+            // This card generated multiple elements but they won't all fit on the current page.
+            // Skip to the next page without updating cardIx
+            break
+          }
+          for (const cardElement of cardElements) {
+            pageDiv.appendChild(cardElement);
+            elementsAdded++
+          }
         }
-      });
+        cardIx++
+      }
 
       this.proxySheetPages.appendChild(pageDiv);
     }
@@ -184,9 +195,10 @@ export class ProxyCardSheetGenerator {
     }
   }
 
-  createCardElement(metadata, originalCard) {
-    const cardDiv = document.createElement('div');
+  createCardElements(metadata, originalCard) {
+    let cardDiv = document.createElement('div');
     cardDiv.className = 'proxy-card';
+    const results = [cardDiv];
 
     if (metadata.imageUrl) {
       const img = document.createElement('img');
@@ -194,7 +206,26 @@ export class ProxyCardSheetGenerator {
       img.alt = metadata.cardName;
       img.className = 'card-image';
       cardDiv.appendChild(img);
+    } else if (Array.isArray(metadata.cardData.card_faces) && metadata.cardData.card_faces.length > 1) {
+      // This is a multi-face card, so we need to create elements for each face
+      const faces = metadata.cardData.card_faces;
+      for (let i = 0; i < faces.length; i++) {
+        const face = faces[i];
+        const img = document.createElement('img');
+        img.src = face.image_uris?.large;
+        img.alt = face.name;
+        img.className = 'card-image';
+        cardDiv.appendChild(img);
+
+        if (i + 1 < faces.length) {
+          cardDiv = document.createElement('div');
+          cardDiv.className = 'proxy-card';
+          results.push(cardDiv);
+        }
+      }
     } else {
+      console.log('No image URL found for', metadata.cardName);
+      console.log('metadata', metadata);
       // Fallback if no image available
       const fallbackDiv = document.createElement('div');
       fallbackDiv.className = 'card-fallback';
@@ -202,6 +233,6 @@ export class ProxyCardSheetGenerator {
       cardDiv.appendChild(fallbackDiv);
     }
 
-    return cardDiv;
+    return results;
   }
 }
