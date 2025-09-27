@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <header>
+    <h1>MTG Proxy Card Sheet Generator</h1>
+    <p>Upload your <code>.dck</code> file to generate a proxy card sheet, then use your browser to print it.</p>
+    <form id="dck-form">
+      <label for="dck-file">Upload .dck file</label>
+      <input type="file" id="dck-file" accept=".dck">
+      <button type="submit">Generate</button>
+    </form>
+  </header>
+  <main>
+    <div id="proxy-sheet-pages">
+    </div>
+  </main>
+  <script type="module">
+    import { ProxyCardSheetGenerator } from './index.js'
+    const proxyCardSheetGenerator = new ProxyCardSheetGenerator(
+      document.getElementById('dck-form'),
+      document.getElementById('proxy-sheet-pages'),
+    )
+  </script>
+</body>
+</html>
