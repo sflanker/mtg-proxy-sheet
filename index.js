@@ -47,7 +47,7 @@ export class ProxyCardSheetGenerator {
     const file = fileInput.files[0];
 
     if (!file) {
-      alert('Please select a .dck file');
+      alert('Please select a .dck or .txt file');
       return;
     }
 
@@ -55,15 +55,25 @@ export class ProxyCardSheetGenerator {
       // Clear existing proxy sheets
       this.proxySheetPages.innerHTML = '';
 
-      // Read and parse the .dck file
+      // Read and parse the file
       const fileContent = await this.readFile(file);
-      const { mainDeckCards, sideboardCards } = this.parseDckFile(fileContent);
+      let mainDeckCards, sideboardCards;
+
+      if (file.name.toLowerCase().endsWith('.txt')) {
+        const result = this.parseTxtFile(fileContent);
+        mainDeckCards = result.mainDeckCards;
+        sideboardCards = result.sideboardCards;
+      } else {
+        const result = this.parseDckFile(fileContent);
+        mainDeckCards = result.mainDeckCards;
+        sideboardCards = result.sideboardCards;
+      }
 
       // Combine main deck and sideboard cards
       const allCards = [...sideboardCards, ...mainDeckCards];
 
       if (allCards.length === 0) {
-        alert('No valid cards found in the .dck file');
+        alert('No valid cards found in the file');
         return;
       }
 
@@ -71,8 +81,8 @@ export class ProxyCardSheetGenerator {
       await this.createProxyPages(allCards);
 
     } catch (error) {
-      console.error('Error processing .dck file:', error);
-      alert('Error processing .dck file. Please check the console for details.');
+      console.error('Error processing file:', error);
+      alert('Error processing file. Please check the console for details.');
     }
   }
 
@@ -127,6 +137,42 @@ export class ProxyCardSheetGenerator {
       quantity: parseInt(qty, 10),
       setCode,
       cardId,
+      cardName: cardName.trim()
+    };
+  }
+
+  parseTxtFile(content) {
+    const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+    const mainDeckCards = [];
+    const sideboardCards = [];
+
+    for (const line of lines) {
+      // Skip empty lines and comments
+      if (!line || line.startsWith('#')) {
+        continue;
+      }
+
+      // Parse txt format: qty Card Name (set) cardId
+      const cardData = this.parseTxtCardLine(line);
+      if (cardData) {
+        mainDeckCards.push(cardData);
+      }
+    }
+
+    return { mainDeckCards, sideboardCards };
+  }
+
+  parseTxtCardLine(line) {
+    // Match pattern: qty Card Name (set) cardId
+    // The cardId can be at the end and may contain letters, numbers, or other characters
+    const match = line.match(/^(\d+)\s+(.+?)\s+\(([^)]+)\)\s+(.+)$/);
+    if (!match) return null;
+
+    const [, qty, cardName, setCode, cardId] = match;
+    return {
+      quantity: parseInt(qty, 10),
+      setCode: setCode.trim(),
+      cardId: cardId.trim(),
       cardName: cardName.trim()
     };
   }

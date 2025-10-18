@@ -1,0 +1,13 @@
+# Test deck file for MTG Proxy Sheet Generator
+# Format: quantity Card Name (set) cardId
+
+4 Lightning Bolt (LEA) 161
+2 Counterspell (LEA) 61
+1 Black Lotus (LEA) 232
+3 Brainstorm (LEA) 55
+2 Force of Will (ALL) 1
+1 Ancestral Recall (LEA) 1
+2 Time Walk (LEA) 609
+1 Mox Pearl (LEA) 297
+1 Mox Sapphire (LEA) 298
+1 Mox Jet (LEA) 296
