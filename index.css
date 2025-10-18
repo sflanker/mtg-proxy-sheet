@@ -109,7 +109,7 @@ main {
 /* Individual proxy card */
 .proxy-card {
   aspect-ratio: 2.5 / 3.5; /* Magic card aspect ratio */
-  border-radius: 8px;
+  border-radius: 0.18in;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
@@ -202,7 +202,7 @@ main {
     height: 88mm;
     box-shadow: none;
     border: none;
-    border-radius: 4px;
+    border-radius: 0.18in;
     overflow: hidden;
   }
 
