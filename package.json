@@ -1,13 +1,13 @@
 {
   "name": "mtg-proxy-sheet",
   "version": "1.0.0",
-  "description": "",
-  "license": "ISC",
-  "author": "",
+  "description": "A web tool for printing magic cards",
+  "license": "MIT",
+  "author": "Paul Wheeler",
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "start": "serve"
+    "start": "serve -l 5000 --no-port-switching --no-clipboard"
   },
   "devDependencies": {
     "serve": "^14.2.5"
