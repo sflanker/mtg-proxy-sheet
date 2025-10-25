@@ -4,6 +4,9 @@ export class ProxyCardSheetGenerator {
     this.proxySheetPages = proxySheetPages;
 
     this.dckForm.addEventListener('submit', this.handleDckFormSubmit.bind(this));
+
+    // Create loading indicator element
+    this.createLoadingIndicator();
   }
 
   async handleDckFormSubmit(event) {
@@ -45,11 +48,15 @@ export class ProxyCardSheetGenerator {
 
     const fileInput = this.dckForm.querySelector('#dck-file');
     const file = fileInput.files[0];
+    const submitButton = this.dckForm.querySelector('button[type="submit"]');
 
     if (!file) {
       alert('Please select a .dck or .txt file');
       return;
     }
+
+    // Disable the submit button and show loading state
+    this.setLoadingState(true);
 
     try {
       // Clear existing proxy sheets
@@ -86,7 +93,53 @@ export class ProxyCardSheetGenerator {
     } catch (error) {
       console.error('Error processing file:', error);
       alert('Error processing file. Please check the console for details.');
+    } finally {
+      // Re-enable the submit button and hide loading state
+      this.setLoadingState(false);
     }
+  }
+
+  createLoadingIndicator() {
+    // Create loading indicator element
+    this.loadingIndicator = document.createElement('div');
+    this.loadingIndicator.className = 'loading-indicator';
+    this.loadingIndicator.innerHTML = `
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Processing cards...</div>
+      <div class="loading-progress">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="progress-text">0 / 0</div>
+      </div>
+    `;
+    this.loadingIndicator.style.display = 'none';
+
+    // Insert after the form
+    this.dckForm.parentNode.insertBefore(this.loadingIndicator, this.dckForm.nextSibling);
+  }
+
+  setLoadingState(isLoading) {
+    const submitButton = this.dckForm.querySelector('button[type="submit"]');
+
+    if (isLoading) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Processing...';
+      this.loadingIndicator.style.display = 'block';
+    } else {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Generate';
+      this.loadingIndicator.style.display = 'none';
+    }
+  }
+
+  updateProgress(completed, total) {
+    const progressFill = this.loadingIndicator.querySelector('.progress-fill');
+    const progressText = this.loadingIndicator.querySelector('.progress-text');
+
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
+    progressFill.style.width = `${percentage}%`;
+    progressText.textContent = `${completed} / ${total}`;
   }
 
   readFile(file) {
@@ -197,12 +250,22 @@ export class ProxyCardSheetGenerator {
       promiseFunctions.reject = reject;
     });
 
-    function startCardFetch(ix) {
+    // Update progress initially
+    this.updateProgress(0, cards.length);
+
+    const startCardFetch = (ix) => {
       // Check if the card is in local storage
       const card = cards[ix];
       const cachedMetadata = localStorage.getItem(`card-metadata-${card.setCode}-${card.cardId}`);
       if (cachedMetadata) {
         results.push(JSON.parse(cachedMetadata));
+        // Update progress for cached cards
+        this.updateProgress(results.length, cards.length);
+        if (results.length === cards.length) {
+          promiseFunctions.resolve(results);
+        } else {
+          tryStartNextCardFetch();
+        }
         return;
       } else {
         const request = this.fetchCardMetadata(card);
@@ -210,6 +273,8 @@ export class ProxyCardSheetGenerator {
         request.then(metadata => {
           localStorage.setItem(`card-metadata-${card.setCode}-${card.cardId}`, JSON.stringify(metadata));
           results.push(metadata);
+          // Update progress
+          this.updateProgress(results.length, cards.length);
           if (results.length === cards.length) {
             promiseFunctions.resolve(results);
           } else {
@@ -220,6 +285,8 @@ export class ProxyCardSheetGenerator {
             ...card,
             error: error.message
           });
+          // Update progress even for errors
+          this.updateProgress(results.length, cards.length);
           if (results.length === cards.length) {
             promiseFunctions.resolve(results);
           } else {
@@ -229,7 +296,7 @@ export class ProxyCardSheetGenerator {
       }
     }
 
-    function tryStartNextCardFetch() {
+    const tryStartNextCardFetch = () => {
       if (nextCardIx < cards.length) {
         // Check the request per second limit
         const now = new Date();
@@ -254,8 +321,7 @@ export class ProxyCardSheetGenerator {
 
   async createProxyPages(cards, filterBasicLands = false) {
     // First, fetch metadata for all cards
-    const cardPromises = cards.map(card => this.fetchCardMetadata(card));
-    const allCardMetadata = await Promise.all(cardPromises);
+    const allCardMetadata = await this.throttledFetchAndCacheCardMetadata(cards);
 
     // Filter out basic lands if the toggle is enabled
     let filteredCards = allCardMetadata;
