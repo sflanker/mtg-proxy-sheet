@@ -77,8 +77,11 @@ export class ProxyCardSheetGenerator {
         return;
       }
 
+      // Check if basic lands should be filtered
+      const filterBasicLands = this.dckForm.querySelector('#filter-basic-lands').checked;
+
       // Fetch card metadata and create proxy pages
-      await this.createProxyPages(allCards);
+      await this.createProxyPages(allCards, filterBasicLands);
 
     } catch (error) {
       console.error('Error processing file:', error);
@@ -177,9 +180,30 @@ export class ProxyCardSheetGenerator {
     };
   }
 
-  async createProxyPages(cards) {
+  async createProxyPages(cards, filterBasicLands = false) {
+    // First, fetch metadata for all cards
+    const cardPromises = cards.map(card => this.fetchCardMetadata(card));
+    const allCardMetadata = await Promise.all(cardPromises);
+
+    // Filter out basic lands if the toggle is enabled
+    let filteredCards = allCardMetadata;
+    if (filterBasicLands) {
+      filteredCards = allCardMetadata.filter(metadata => {
+        if (!metadata?.typeLine) return false;
+        return !metadata.typeLine.startsWith('Basic Land');
+      });
+    }
+
+    // Remove null/undefined entries
+    filteredCards = filteredCards.filter(metadata => metadata !== null && metadata !== undefined);
+
+    if (filteredCards.length === 0) {
+      alert('No valid cards found after filtering');
+      return;
+    }
+
     const cardsPerPage = 9;
-    const totalPages = Math.ceil(cards.length / cardsPerPage);
+    const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
 
     let cardIx = 0;
     for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -187,18 +211,14 @@ export class ProxyCardSheetGenerator {
       pageDiv.className = 'proxy-page';
 
       const startIndex = cardIx;
-      const endIndex = Math.min(cardIx + cardsPerPage, cards.length);
-      const pageCards = cards.slice(startIndex, endIndex);
+      const endIndex = Math.min(cardIx + cardsPerPage, filteredCards.length);
+      const pageCards = filteredCards.slice(startIndex, endIndex);
 
-      // Fetch metadata for all cards on this page
-      const cardPromises = pageCards.map(card => this.fetchCardMetadata(card));
-      const cardMetadata = await Promise.all(cardPromises);
       let elementsAdded = 0;
 
-      for (let i = 0; i < cardMetadata.length && elementsAdded < cardsPerPage; i++) {
-        const metadata = cardMetadata[i];
-        if (metadata) {
-          const cardElements = this.createCardElements(metadata, pageCards[i]);
+      for (let i = 0; i < pageCards.length && elementsAdded < cardsPerPage; i++) {
+        if (pageCards[i]) {
+          const cardElements = this.createCardElements(pageCards[i]);
           if (elementsAdded > 0 && cardElements.length > 1 && elementsAdded + cardElements.length > cardsPerPage) {
             // This card generated multiple elements but they won't all fit on the current page.
             // Skip to the next page without updating cardIx
@@ -233,6 +253,7 @@ export class ProxyCardSheetGenerator {
       return {
         ...card,
         imageUrl: data.image_uris?.large,
+        typeLine: data.type_line,
         cardData: data
       };
     } catch (error) {
@@ -241,7 +262,7 @@ export class ProxyCardSheetGenerator {
     }
   }
 
-  createCardElements(metadata, originalCard) {
+  createCardElements(metadata) {
     const cardElements = [];
 
     if (metadata.imageUrl) {
@@ -302,7 +323,7 @@ export class ProxyCardSheetGenerator {
       // Fallback if no image available
       const fallbackDiv = document.createElement('div');
       fallbackDiv.className = 'card-fallback';
-      fallbackDiv.textContent = `${originalCard.quantity}x ${originalCard.cardName}`;
+      fallbackDiv.textContent = `${metadata.quantity}x ${metadata.cardName}`;
       cardDiv.appendChild(fallbackDiv);
       cardElements.push(cardDiv);
     }

@@ -11,3 +11,9 @@
 1 Mox Pearl (LEA) 297
 1 Mox Sapphire (LEA) 298
 1 Mox Jet (LEA) 296
+# Basic lands to test filtering
+4 Island (LEA) 81
+4 Mountain (LEA) 195
+4 Forest (LEA) 294
+4 Plains (LEA) 331
+4 Swamp (LEA) 339
