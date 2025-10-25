@@ -242,43 +242,71 @@ export class ProxyCardSheetGenerator {
   }
 
   createCardElements(metadata, originalCard) {
-    let cardDiv = document.createElement('div');
-    cardDiv.className = 'proxy-card';
-    const results = [cardDiv];
+    const cardElements = [];
 
     if (metadata.imageUrl) {
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'proxy-card';
       const img = document.createElement('img');
       img.src = metadata.imageUrl;
       img.alt = metadata.cardName;
       img.className = 'card-image';
       cardDiv.appendChild(img);
+      cardElements.push(cardDiv);
     } else if (Array.isArray(metadata.cardData.card_faces) && metadata.cardData.card_faces.length > 1) {
-      // This is a multi-face card, so we need to create elements for each face
+      if (metadata.cardData.card_faces.length == 2) {
+        // This is a two-face card, create a container with both faces rotated 90 degrees
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'proxy-card double-faced-card';
+
+        const facesContainer = document.createElement('div');
+        facesContainer.className = 'double-faced-container';
+
+        const faces = metadata.cardData.card_faces;
+        for (let i = 0; i < faces.length; i++) {
+          const face = faces[i];
+          const faceDiv = document.createElement('div');
+          faceDiv.className = 'card-face';
+          // faceDiv.style.backgroundImage = `url(${face.image_uris?.large})`;
+
+          const img = document.createElement('img');
+          img.src = face.image_uris?.large;
+          img.alt = face.name;
+          img.className = 'card-image';
+          faceDiv.appendChild(img);
+
+          facesContainer.appendChild(faceDiv);
+        }
+
+        cardDiv.appendChild(facesContainer);
+        cardElements.push(cardDiv);
+      }
+      // Add the individual faces as well
       const faces = metadata.cardData.card_faces;
       for (let i = 0; i < faces.length; i++) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'proxy-card';
         const face = faces[i];
         const img = document.createElement('img');
         img.src = face.image_uris?.large;
         img.alt = face.name;
         img.className = 'card-image';
         cardDiv.appendChild(img);
-
-        if (i + 1 < faces.length) {
-          cardDiv = document.createElement('div');
-          cardDiv.className = 'proxy-card';
-          results.push(cardDiv);
-        }
+        cardElements.push(cardDiv);
       }
     } else {
       console.log('No image URL found for', metadata.cardName);
       console.log('metadata', metadata);
+      const cardDiv = document.createElement('div');
+      cardDiv.className = 'proxy-card';
       // Fallback if no image available
       const fallbackDiv = document.createElement('div');
       fallbackDiv.className = 'card-fallback';
       fallbackDiv.textContent = `${originalCard.quantity}x ${originalCard.cardName}`;
       cardDiv.appendChild(fallbackDiv);
+      cardElements.push(cardDiv);
     }
 
-    return results;
+    return cardElements;
   }
 }
