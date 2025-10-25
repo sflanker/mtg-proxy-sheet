@@ -180,6 +180,78 @@ export class ProxyCardSheetGenerator {
     };
   }
 
+  parallelFetchLimit = 3;
+  maximumRequestsPerSecond = 5;
+
+  /*
+   * carts - Array<{ quantity: number, setCode: string, cardId: string, cardName: string }>
+   */
+  async throttledFetchAndCacheCardMetadata(cards) {
+    let pendingRequests = [];
+    let results = [];
+    let nextCardIx = 0;
+
+    let promiseFunctions = {};
+    let completionPromise = new Promise((resolve, reject) => {
+      promiseFunctions.resolve = resolve;
+      promiseFunctions.reject = reject;
+    });
+
+    function startCardFetch(ix) {
+      // Check if the card is in local storage
+      const card = cards[ix];
+      const cachedMetadata = localStorage.getItem(`card-metadata-${card.setCode}-${card.cardId}`);
+      if (cachedMetadata) {
+        results.push(JSON.parse(cachedMetadata));
+        return;
+      } else {
+        const request = this.fetchCardMetadata(card);
+        pendingRequests.push({ request, start: new Date() });
+        request.then(metadata => {
+          localStorage.setItem(`card-metadata-${card.setCode}-${card.cardId}`, JSON.stringify(metadata));
+          results.push(metadata);
+          if (results.length === cards.length) {
+            promiseFunctions.resolve(results);
+          } else {
+            tryStartNextCardFetch();
+          }
+        }).catch(error => {
+          results.push({
+            ...card,
+            error: error.message
+          });
+          if (results.length === cards.length) {
+            promiseFunctions.resolve(results);
+          } else {
+            tryStartNextCardFetch();
+          }
+        })
+      }
+    }
+
+    function tryStartNextCardFetch() {
+      if (nextCardIx < cards.length) {
+        // Check the request per second limit
+        const now = new Date();
+        let requestsInLastTwoSecond = pendingRequests.filter(request => request.start > now - 2000).length;
+        if (requestsInLastTwoSecond < this.maximumRequestsPerSecond) {
+          startCardFetch(nextCardIx++);
+        } else {
+          // Wait for the next second
+          setTimeout(() => {
+            tryStartNextCardFetch();
+          }, 200);
+        }
+      }
+    }
+
+    for (; nextCardIx < this.parallelFetchLimit; nextCardIx++) {
+      startCardFetch(nextCardIx);
+    }
+
+    return completionPromise;
+  }
+
   async createProxyPages(cards, filterBasicLands = false) {
     // First, fetch metadata for all cards
     const cardPromises = cards.map(card => this.fetchCardMetadata(card));
