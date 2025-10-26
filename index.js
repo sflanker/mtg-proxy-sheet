@@ -237,9 +237,11 @@ export class ProxyCardSheetGenerator {
   maximumRequestsPerSecond = 5;
 
   /*
-   * carts - Array<{ quantity: number, setCode: string, cardId: string, cardName: string }>
+   * cards - Array<{ quantity: number, setCode: string, cardId: string, cardName: string }>
    */
   async throttledFetchAndCacheCardMetadata(cards) {
+    // toFetch - Array<{ quantity: number, setCode: string, cardId: string, cardName: string } | { uri: string }>
+    let toFetch = [...cards];
     let pendingRequests = [];
     let results = [];
     let nextCardIx = 0;
@@ -255,27 +257,39 @@ export class ProxyCardSheetGenerator {
 
     const startCardFetch = (ix) => {
       // Check if the card is in local storage
-      const card = cards[ix];
-      const cachedMetadata = localStorage.getItem(`card-metadata-${card.setCode}-${card.cardId}`);
+      const card = toFetch[ix];
+      const isRelatedCard = !card.setCode && !!card.uri;
+      const cardKey = card.setCode ? `card-metadata-${card.setCode}-${card.cardId}` : card.uri;
+      const cachedMetadata = localStorage.getItem(cardKey);
       if (cachedMetadata) {
-        results.push(JSON.parse(cachedMetadata));
+        const metadata = JSON.parse(cachedMetadata);
+        results.push(metadata);
+        if (!isRelatedCard) {
+          handleRelatedCards(metadata);
+        }
         // Update progress for cached cards
-        this.updateProgress(results.length, cards.length);
-        if (results.length === cards.length) {
+        this.updateProgress(results.length, toFetch.length);
+        if (results.length === toFetch.length) {
           promiseFunctions.resolve(results);
         } else {
-          tryStartNextCardFetch();
+          // There needs to be a small delay to avoid the race condition when a cards are fetched synchronously.
+          setTimeout(() => {
+            tryStartNextCardFetch();
+          }, 100);
         }
         return;
       } else {
         const request = this.fetchCardMetadata(card);
         pendingRequests.push({ request, start: new Date() });
         request.then(metadata => {
-          localStorage.setItem(`card-metadata-${card.setCode}-${card.cardId}`, JSON.stringify(metadata));
+          localStorage.setItem(cardKey, JSON.stringify(metadata));
           results.push(metadata);
+          if (!isRelatedCard) {
+            handleRelatedCards(metadata);
+          }
           // Update progress
-          this.updateProgress(results.length, cards.length);
-          if (results.length === cards.length) {
+          this.updateProgress(results.length, toFetch.length);
+          if (results.length === toFetch.length) {
             promiseFunctions.resolve(results);
           } else {
             tryStartNextCardFetch();
@@ -286,8 +300,8 @@ export class ProxyCardSheetGenerator {
             error: error.message
           });
           // Update progress even for errors
-          this.updateProgress(results.length, cards.length);
-          if (results.length === cards.length) {
+          this.updateProgress(results.length, toFetch.length);
+          if (results.length === toFetch.length) {
             promiseFunctions.resolve(results);
           } else {
             tryStartNextCardFetch();
@@ -297,7 +311,7 @@ export class ProxyCardSheetGenerator {
     }
 
     const tryStartNextCardFetch = () => {
-      if (nextCardIx < cards.length) {
+      if (nextCardIx < toFetch.length) {
         // Check the request per second limit
         const now = new Date();
         let requestsInLastTwoSecond = pendingRequests.filter(request => request.start > now - 2000).length;
@@ -308,6 +322,16 @@ export class ProxyCardSheetGenerator {
           setTimeout(() => {
             tryStartNextCardFetch();
           }, 200);
+        }
+      }
+    }
+
+    const handleRelatedCards = (metadata) => {
+      if (metadata.cardData?.all_parts && metadata.cardData.all_parts.length > 1) {
+        for (const part of metadata.cardData.all_parts) {
+          if (part.id !== metadata.cardData.id && part.name !== metadata.cardName) {
+            toFetch.push({ cardName: part.name, uri: part.uri })
+          }
         }
       }
     }
@@ -376,7 +400,7 @@ export class ProxyCardSheetGenerator {
 
   async fetchCardMetadata(card) {
     try {
-      const url = `https://api.scryfall.com/cards/${card.setCode}/${card.cardId}`;
+      const url = card.setCode ? `https://api.scryfall.com/cards/${card.setCode}/${card.cardId}` : card.uri;
       const response = await fetch(url, {
         headers: {
           'Accept': 'application/json'
@@ -389,13 +413,17 @@ export class ProxyCardSheetGenerator {
 
       const data = await response.json();
       return {
+        qty: 1,
+        setCode: data.set,
+        cardId: data.collector_number,
+        cardName: data.name,
         ...card,
         imageUrl: data.image_uris?.large,
         typeLine: data.type_line,
         cardData: data
       };
     } catch (error) {
-      console.error(`Error fetching metadata for ${card.cardName}:`, error);
+      console.error(`Error fetching metadata for ${card.cardName ?? card.uri}:`, error);
       return null;
     }
   }
