@@ -336,7 +336,7 @@ export class ProxyCardSheetGenerator {
       }
     }
 
-    for (; nextCardIx < this.parallelFetchLimit; nextCardIx++) {
+    for (; nextCardIx < this.parallelFetchLimit && nextCardIx < toFetch.length; nextCardIx++) {
       startCardFetch(nextCardIx);
     }
 
