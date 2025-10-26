@@ -199,9 +199,11 @@ main {
 
 /* Individual proxy card */
 .proxy-card {
-  aspect-ratio: 2.5 / 3.5;
   /* Magic card aspect ratio */
-  border-radius: 0.18in;
+  aspect-ratio: 2.5 / 3.5;
+  border-radius: 2.5mm;
+  /* I don't believe in white border cards? */
+  background-color: black;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
@@ -218,6 +220,7 @@ main {
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 4.5mm;
 }
 
 /* Double-faced card styles */
@@ -310,7 +313,7 @@ main {
   .proxy-page {
     display: flex;
     flex-wrap: wrap;
-    gap: 1px;
+    gap: 0.5px;
     box-shadow: none;
     border: none;
     border-radius: none;
@@ -329,8 +332,9 @@ main {
     height: 88mm;
     box-shadow: none;
     border: none;
-    border-radius: 0.18in;
+    border-radius: 2.5mm;
     overflow: hidden;
+    background-color: black;
   }
 
   .proxy-card img {
@@ -338,5 +342,6 @@ main {
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 4.5mm;
   }
 }
